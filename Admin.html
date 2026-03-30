@@ -19,7 +19,7 @@
         .btn-save { background: var(--accent); color: white; }
         .btn-update-settings { background: #007bff; color: white; }
         .video-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #eee; background: #fff; border-radius: 8px; margin-bottom: 10px; }
-        .v-thumb-preview { width: 70px; height: 45px; border-radius: 4px; object-fit: cover; }
+        .v-thumb-preview { width: 70px; height: 45px; border-radius: 4px; object-fit: cover; background: #eee; }
         .v-meta { flex-grow: 1; }
         .v-name { font-weight: bold; font-size: 14px; color: #333; display: block; }
         .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
@@ -53,8 +53,7 @@
         <div class="card">
             <h2>🚀 নতুন ভিডিও আপলোড</h2>
             <div class="form-group"><input type="text" id="v-title" placeholder="ভিডিওর টাইটেল"></div>
-            <div class="form-group"><input type="text" id="v-channel" placeholder="চ্যানেলের নাম"></div>
-            <div class="form-group"><input type="text" id="v-thumb" placeholder="থাম্বনেইল লিঙ্ক (URL)"></div>
+            <div class="form-group"><input type="text" id="v-channel" placeholder="অ্যাপ নাম / বটের নাম"></div>
             <div class="form-group"><input type="text" id="v-url" placeholder="ভিডিও লিঙ্ক (Direct Video URL)"></div>
             <div class="form-group">
                 <select id="v-cat">
@@ -75,8 +74,7 @@
 </div>
 
 <script>
-    // --- নিরাপত্তা লজিক ---
-    const ADMIN_PASS = "@24342211";
+    const ADMIN_PASS = "@24342211"; 
     const userPass = prompt("অ্যাডমিন পাসওয়ার্ড দিন:");
 
     if (userPass !== ADMIN_PASS) {
@@ -92,17 +90,17 @@
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // সেটিংস লোড
         async function loadSettings() {
-            const { data } = await supabaseClient.from('settings').select('*').eq('id', 1).single();
-            if (data) {
-                document.getElementById('set-ad-link').value = data.ad_link || '';
-                document.getElementById('set-min-points').value = data.min_points_to_play || 5;
-                document.getElementById('ad-status').innerText = data.ad_link ? 'সক্রিয়' : 'নেই';
-            }
+            try {
+                const { data, error } = await supabaseClient.from('settings').select('*').eq('id', 1).single();
+                if (data) {
+                    document.getElementById('set-ad-link').value = data.ad_link || '';
+                    document.getElementById('set-min-points').value = data.min_points_to_play || 5;
+                    document.getElementById('ad-status').innerText = data.ad_link ? 'সক্রিয়' : 'নেই';
+                }
+            } catch (err) { console.error(err); }
         }
 
-        // সেটিংস আপডেট
         window.updateAppSettings = async function() {
             const adLink = document.getElementById('set-ad-link').value;
             const minPts = document.getElementById('set-min-points').value;
@@ -110,34 +108,62 @@
                 ad_link: adLink,
                 min_points_to_play: parseInt(minPts)
             }).eq('id', 1);
-            if (!error) alert("সেটিংস আপডেট হয়েছে!");
-            loadSettings();
+
+            if (error) alert("Error: " + error.message);
+            else { alert("সেটিংস আপডেট হয়েছে!"); loadSettings(); }
         }
 
-        // ভিডিও সেভ
         window.saveVideo = async function() {
             const title = document.getElementById('v-title').value;
-            const channel = document.getElementById('v-channel').value;
-            const thumbnail = document.getElementById('v-thumb').value;
+            const channel = document.getElementById('v-channel').value; // এখানে ইনপুট থেকে অ্যাপ/বটের নাম নেওয়া হচ্ছে
             const url = document.getElementById('v-url').value;
             const category = document.getElementById('v-cat').value;
-            if (!title || !url) return alert("তথ্য দিন!");
-            await supabaseClient.from('videos').insert([{ title, channel, thumbnail, url, category }]);
-            alert("সফল!");
-            loadAdminVideos();
+
+            if (!title || !url) return alert("দয়া করে টাইটেল এবং ভিডিও লিঙ্ক দিন!");
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "পাবলিশ হচ্ছে...";
+
+            const { error } = await supabaseClient
+                .from('videos')
+                .insert([{ title, channel, url, category }]);
+
+            if (error) {
+                alert("ব্যর্থ হয়েছে: " + error.message);
+            } else {
+                alert("ভিডিও সফলভাবে পাবলিশ হয়েছে!");
+                document.getElementById('v-title').value = '';
+                document.getElementById('v-url').value = '';
+                document.getElementById('v-channel').value = '';
+                loadAdminVideos();
+            }
+            saveBtn.disabled = false;
+            saveBtn.innerText = "➕ পাবলিশ করুন";
         }
 
-        // ভিডিও লিস্ট
         async function loadAdminVideos() {
-            const { data: videos } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
+            const { data: videos, error } = await supabaseClient
+                .from('videos')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) return;
+
             const list = document.getElementById('video-list');
             document.getElementById('total-videos').innerText = videos ? videos.length : 0;
             list.innerHTML = '';
+            
+            const defaultThumb = 'https://via.placeholder.com/70x45?text=Video';
+
             videos.forEach(v => {
                 list.innerHTML += `
                     <div class="video-item">
-                        <img src="${v.thumbnail}" class="v-thumb-preview">
-                        <div class="v-meta"><span class="v-name">${v.title}</span></div>
+                        <img src="${v.thumbnail || defaultThumb}" class="v-thumb-preview" onerror="this.src='${defaultThumb}'">
+                        <div class="v-meta">
+                            <span class="v-name">${v.title}</span>
+                            <small style="color:#888">${v.channel || 'No Name'}</small>
+                        </div>
                         <button class="btn-delete" onclick="deleteVideo('${v.id}')">ডিলিট</button>
                     </div>
                 `;
@@ -145,9 +171,10 @@
         }
 
         window.deleteVideo = async function(id) {
-            if (confirm("ডিলিট করবেন?")) {
-                await supabaseClient.from('videos').delete().eq('id', id);
-                loadAdminVideos();
+            if (confirm("ভিডিওটি ডিলিট করতে চান?")) {
+                const { error } = await supabaseClient.from('videos').delete().eq('id', id);
+                if (error) alert("ডিলিট ব্যর্থ: " + error.message);
+                else loadAdminVideos();
             }
         }
 
