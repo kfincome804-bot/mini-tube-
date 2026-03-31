@@ -54,7 +54,7 @@
             <h2>নতুন ভিডিও যোগ করুন</h2>
             <div class="form-group"><input type="text" id="v-title" placeholder="ভিডিওর শিরোনাম"></div>
             <div class="form-group"><input type="text" id="v-channel" placeholder="চ্যানেল বা ইউজারের নাম"></div>
-            <div class="form-group"><input type="text" id="v-url" placeholder="ভিডিও লিঙ্ক (Direct Video URL)"></div>
+            <div class="form-group"><input type="text" id="v-url" placeholder="ভিডিও লিঙ্ক (Direct URL)"></div>
             <div class="form-group">
                 <select id="v-cat">
                     <option value="Movie">Movie</option>
@@ -64,7 +64,7 @@
                 </select>
             </div>
             <button class="btn btn-save" id="save-btn" onclick="saveVideo()">ভিডিও সেভ করুন</button>
-            <p style="font-size: 11px; color: #888; margin-top: 10px;">* ভিডিও লিঙ্ক থেকে থাম্বনেইল অটো তৈরি হবে।</p>
+            <p style="font-size: 11px; color: #888; margin-top: 10px;">* ড্রপবক্স লিঙ্ক দিলে শেষে ?raw=1 যোগ হবে এবং থাম্বনেইল অটো তৈরি হবে।</p>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
@@ -91,7 +91,7 @@
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
-        // --- অটো থাম্বনেইল জেনারেটর ফাংশন ---
+        // অটো থাম্বনেইল জেনারেটর (CORS হ্যান্ডলিং সহ)
         async function generateThumbnail(videoUrl) {
             return new Promise((resolve) => {
                 const video = document.createElement("video");
@@ -100,7 +100,13 @@
                 video.currentTime = 1;
                 video.muted = true;
 
+                // টাইমআউট সেট করা যাতে অনেকক্ষণ লোড না হয়
+                const timeout = setTimeout(() => {
+                    resolve('https://via.placeholder.com/320x180?text=No+Thumbnail');
+                }, 5000);
+
                 video.onloadeddata = () => {
+                    clearTimeout(timeout);
                     const canvas = document.createElement("canvas");
                     canvas.width = 320;
                     canvas.height = 180;
@@ -110,7 +116,8 @@
                 };
 
                 video.onerror = () => {
-                    resolve('https://via.placeholder.com/320x180?text=No+Thumbnail');
+                    clearTimeout(timeout);
+                    resolve('https://via.placeholder.com/320x180?text=Error+Loading+Video');
                 };
             });
         }
@@ -134,67 +141,82 @@
                 min_points_to_play: parseInt(minPts)
             }).eq('id', 1);
 
-            if (error) alert("ভুল: " + error.message);
+            if (error) alert("Error: " + error.message);
             else { alert("সেটিংস আপডেট হয়েছে!"); loadSettings(); }
         }
 
         window.saveVideo = async function() {
+            let url = document.getElementById('v-url').value;
             const title = document.getElementById('v-title').value;
             const channel = document.getElementById('v-channel').value;
-            const url = document.getElementById('v-url').value;
             const category = document.getElementById('v-cat').value;
 
-            if (!title || !url) return alert("শিরোনাম এবং লিঙ্ক অবশ্যই দিতে হবে!");
+            if (!title || !url) return alert("শিরোনাম এবং লিঙ্ক দিন!");
+
+            // ড্রপবক্স লিঙ্ক ঠিক করা
+            if (url.includes("dropbox.com")) {
+                url = url.replace("dl=0", "raw=1").replace("dl=1", "raw=1");
+            }
 
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = true;
             saveBtn.innerText = "থাম্বনেইল তৈরি হচ্ছে...";
 
-            // অটো থাম্বনেইল জেনারেট করা হচ্ছে
-            const thumb = await generateThumbnail(url);
-            saveBtn.innerText = "সেভ হচ্ছে...";
+            try {
+                const thumb = await generateThumbnail(url);
+                saveBtn.innerText = "সেভ হচ্ছে...";
 
-            const { error } = await supabaseClient
-                .from('videos')
-                .insert([{ title, channel, url, category, thumbnail: thumb }]);
+                const { error } = await supabaseClient
+                    .from('videos')
+                    .insert([{ title, channel, url, category, thumbnail: thumb }]);
 
-            if (error) {
-                alert("এরর: " + error.message);
-            } else {
-                alert("ভিডিও সফলভাবে সেভ হয়েছে!");
+                if (error) throw error;
+
+                alert("সফলভাবে ভিডিও যোগ হয়েছে!");
                 document.getElementById('v-title').value = '';
                 document.getElementById('v-url').value = '';
                 document.getElementById('v-channel').value = '';
                 loadAdminVideos();
+            } catch (err) {
+                alert("এরর: " + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "ভিডিও সেভ করুন";
             }
-            saveBtn.disabled = false;
-            saveBtn.innerText = "ভিডিও সেভ করুন";
         }
 
         async function loadAdminVideos() {
-            const { data: videos } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
+            const { data: videos } = await supabaseClient
+                .from('videos')
+                .select('*')
+                .order('created_at', { ascending: false });
+
             const list = document.getElementById('video-list');
             document.getElementById('total-videos').innerText = videos ? videos.length : 0;
             list.innerHTML = '';
             
-            videos.forEach(v => {
-                list.innerHTML += `
-                    <div class="video-item">
-                        <img src="${v.thumbnail}" class="v-thumb-preview">
-                        <div class="v-meta">
-                            <span class="v-name">${v.title}</span>
-                            <small style="color:#888">${v.channel || 'No Name'}</small>
+            const defaultThumb = 'https://via.placeholder.com/70x45?text=Video';
+
+            if (videos) {
+                videos.forEach(v => {
+                    list.innerHTML += `
+                        <div class="video-item">
+                            <img src="${v.thumbnail || defaultThumb}" class="v-thumb-preview" onerror="this.src='${defaultThumb}'">
+                            <div class="v-meta">
+                                <span class="v-name">${v.title}</span>
+                                <small style="color:#888">${v.channel || 'No Name'}</small>
+                            </div>
+                            <button class="btn-delete" onclick="deleteVideo('${v.id}')">ডিলিট</button>
                         </div>
-                        <button class="btn-delete" onclick="deleteVideo('${v.id}')">ডিলিট</button>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
         }
 
         window.deleteVideo = async function(id) {
-            if (confirm("ভিডিওটি ডিলিট করতে চান?")) {
+            if (confirm("ডিলিট করতে চান?")) {
                 const { error } = await supabaseClient.from('videos').delete().eq('id', id);
-                if (error) alert("এরর: " + error.message);
+                if (error) alert("Error: " + error.message);
                 else loadAdminVideos();
             }
         }
@@ -204,5 +226,4 @@
     }
 </script>
 </body>
-</html>
 </html>
