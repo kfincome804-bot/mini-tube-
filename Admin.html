@@ -3,24 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniTube Pro - Error Free Admin</title>
+    <title>MiniTube Pro - Secure Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --main: #ff0000; --bg: #f4f7f6; --card-bg: #fff; --text: #333; --accent: #28a745; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .admin-container { max-width: 900px; margin: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        :root { --main: #ff0000; --bg: #f0f2f5; --card-bg: #fff; --text: #333; --accent: #28a745; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .admin-container { max-width: 1000px; margin: auto; display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
         @media (max-width: 768px) { .admin-container { grid-template-columns: 1fr; } }
-        .card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; }
-        h2 { color: var(--main); font-size: 18px; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        .card { background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); border: 1px solid #eee; margin-bottom: 20px; }
+        h2 { color: var(--main); margin-top: 0; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 12px; display: flex; align-items: center; gap: 10px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 13px; margin-bottom: 5px; color: #666; font-weight: bold; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-save { background: var(--accent); color: white; font-size: 16px; }
-        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
-        .video-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 5px; border-radius: 5px; }
-        .v-thumb { width: 60px; height: 40px; border-radius: 4px; object-fit: cover; background: #eee; }
-        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #666; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-save { background: var(--accent); color: white; }
+        .btn-update-settings { background: #007bff; color: white; }
+        .video-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #eee; background: #fff; border-radius: 8px; margin-bottom: 10px; }
+        .v-thumb-preview { width: 70px; height: 45px; border-radius: 4px; object-fit: cover; background: #eee; }
+        .v-meta { flex-grow: 1; }
+        .v-name { font-weight: bold; font-size: 14px; color: #333; display: block; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -31,19 +33,19 @@
         <div class="card">
             <h2>নতুন ভিডিও যোগ করুন</h2>
             <div class="form-group">
-                <label>ভিডিওর টাইটেল</label>
-                <input type="text" id="v-title" placeholder="যেমন: My Awesome Video">
+                <label>ভিডিও টাইটেল</label>
+                <input type="text" id="v-title" placeholder="ভিডিওর শিরোনাম">
             </div>
             <div class="form-group">
-                <label>চ্যানেলের নাম</label>
-                <input type="text" id="v-channel" placeholder="আপনার নাম বা চ্যানেলের নাম">
+                <label>চ্যানেল নাম</label>
+                <input type="text" id="v-channel" placeholder="চ্যানেল বা ইউজারের নাম">
             </div>
             <div class="form-group">
-                <label>ভিডিও লিঙ্ক (Dropbox/MP4)</label>
-                <input type="text" id="v-url" placeholder="লিঙ্ক পেস্ট করুন">
+                <label>ভিডিও লিঙ্ক (Dropbox/Direct MP4)</label>
+                <input type="text" id="v-url" placeholder="ভিডিও লিঙ্ক পেস্ট করুন">
             </div>
             <div class="form-group">
-                <label>থাম্বনেইল লিঙ্ক (ঐচ্ছিক/ইচ্ছেমতো)</label>
+                <label>থাম্বনেইল লিঙ্ক (ঐচ্ছিক)</label>
                 <input type="text" id="v-thumb" placeholder="ছবির লিঙ্ক (ফাঁকা রাখলে ডিফল্ট ছবি বসবে)">
             </div>
             <div class="form-group">
@@ -58,7 +60,7 @@
         </div>
 
         <div class="card">
-            <h2>ভিডিও লিস্ট (মোট: <span id="total-count">0</span>)</h2>
+            <h2>ভিডিও লিস্ট (মোট: <span id="total-videos">0</span>)</h2>
             <div id="video-list">লোড হচ্ছে...</div>
         </div>
     </div>
@@ -66,11 +68,11 @@
 
 <script>
     const ADMIN_PASS = "@24342211";
-    const userPass = prompt("পাসওয়ার্ড দিন:");
+    const userPass = prompt("অ্যাডমিন পাসওয়ার্ড দিন:");
 
     if (userPass !== ADMIN_PASS) {
         alert("ভুল পাসওয়ার্ড!");
-        document.body.innerHTML = "<h1 style='text-align:center; color:red; margin-top:50px;'>পাসওয়ার্ড ভুল! রিফ্রেশ করে আবার চেষ্টা করুন।</h1>";
+        document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:red;'>Access Denied!</h1>";
     } else {
         document.getElementById('admin-content').style.display = 'block';
         startAdmin();
@@ -85,94 +87,87 @@
             let url = document.getElementById('v-url').value.trim();
             const title = document.getElementById('v-title').value.trim();
             const channel = document.getElementById('v-channel').value.trim();
-            let thumb = document.getElementById('v-thumb').value.trim();
+            let thumb = document.getElementById('v-thumb').value.trim() || "https://via.placeholder.com/320x180?text=MiniTube";
             const category = document.getElementById('v-cat').value;
 
-            if (!title || !url) return alert("দয়া করে টাইটেল এবং লিঙ্ক দিন!");
+            if (!title || !url) return alert("টাইটেল এবং লিঙ্ক দিন!");
 
-            // ড্রপবক্স লিঙ্ক অটো-ফিক্স
+            // ড্রপবক্স লিঙ্ক ফিক্স
             if (url.includes("dropbox.com")) {
                 url = url.split('?')[0] + "?raw=1";
             }
 
-            // থাম্বনেইল না দিলে একটি ডিফল্ট ছবি সেট করা
-            if (!thumb) {
-                thumb = "https://via.placeholder.com/320x180?text=No+Thumbnail";
-            }
-
             const btn = document.getElementById('save-btn');
             btn.disabled = true;
-            btn.innerText = "সেভ হচ্ছে...";
+            btn.innerText = "চেক করা হচ্ছে...";
 
             try {
-                // সরাসরি ডাটাবেসে সেভ করা (কোনো Fetch করার চেষ্টা করবে না)
-                const { error } = await supabaseClient.from('videos').insert([{
-                    title: title,
-                    channel: channel,
-                    url: url,
-                    category: category,
-                    thumbnail: thumb
-                }]);
+                console.log("Sending data to Supabase...");
+                
+                // এখানে আমরা ID পাঠাচ্ছি না কারণ আপনার টেবিলে UUID অটো জেনারেট হওয়ার কথা
+                const { data, error } = await supabaseClient
+                    .from('videos')
+                    .insert([{
+                        title: title,
+                        channel: channel,
+                        url: url,
+                        category: category,
+                        thumbnail: thumb
+                    }]);
 
                 if (error) {
-                    throw error;
+                    alert("ডাটাবেস এরর: " + error.message + "\nCode: " + error.code);
+                    console.error(error);
                 } else {
-                    alert("ভিডিও সফলভাবে সেভ হয়েছে!");
-                    document.getElementById('v-title').value = '';
-                    document.getElementById('v-url').value = '';
-                    document.getElementById('v-thumb').value = '';
-                    loadVideos();
+                    alert("অভিনন্দন! ভিডিওটি সফলভাবে সেভ হয়েছে।");
+                    location.reload(); 
                 }
-            } catch (err) {
-                alert("এরর: " + err.message);
-                console.error(err);
+            } catch (networkError) {
+                alert("নেটওয়ার্ক এরর (Failed to fetch):\n১. আপনার ইন্টারনেট কানেকশন বা VPN চেক করুন।\n২. ব্রাউজারের Ad-Blocker বন্ধ করুন।\n৩. সুপাবেস ইউআরএল সঠিক কি না দেখুন।");
+                console.error(networkError);
             } finally {
                 btn.disabled = false;
                 btn.innerText = "সেভ করুন";
             }
         }
 
-        async function loadVideos() {
-            try {
-                const { data: videos } = await supabaseClient
-                    .from('videos')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                const list = document.getElementById('video-list');
-                document.getElementById('total-count').innerText = videos ? videos.length : 0;
-                list.innerHTML = '';
-                
-                if (videos && videos.length > 0) {
-                    videos.forEach(v => {
-                        list.innerHTML += `
-                            <div class="video-item">
-                                <img src="${v.thumbnail}" class="v-thumb" onerror="this.src='https://via.placeholder.com/60x40?text=Video'">
-                                <div style="flex-grow:1; font-size:13px;">
-                                    <b>${v.title}</b><br>
-                                    <small style="color:#777">${v.channel || 'No Channel'}</small>
-                                </div>
-                                <button class="btn-delete" onclick="deleteVideo('${v.id}')">ডিলিট</button>
-                            </div>
-                        `;
-                    });
-                } else {
-                    list.innerHTML = "<p style='text-align:center; color:#999;'>কোনো ভিডিও পাওয়া যায়নি।</p>";
-                }
-            } catch (err) {
-                console.error("Load error:", err);
-            }
+        async function loadAdminVideos() {
+            const { data: videos, error } = await supabaseClient
+                .from('videos')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) return;
+
+            const list = document.getElementById('video-list');
+            document.getElementById('total-videos').innerText = videos ? videos.length : 0;
+            list.innerHTML = '';
+            
+            const defaultThumb = 'https://via.placeholder.com/70x45?text=Video';
+
+            videos.forEach(v => {
+                list.innerHTML += `
+                    <div class="video-item">
+                        <img src="${v.thumbnail || defaultThumb}" class="v-thumb-preview" onerror="this.src='${defaultThumb}'">
+                        <div class="v-meta">
+                            <span class="v-name">${v.title}</span>
+                            <small style="color:#888">${v.channel || 'No Name'}</small>
+                        </div>
+                        <button class="btn-delete" onclick="deleteVideo('${v.id}')">ডিলিট</button>
+                    </div>
+                `;
+            });
         }
 
         window.deleteVideo = async function(id) {
-            if (confirm("আপনি কি নিশ্চিত যে এই ভিডিওটি ডিলিট করতে চান?")) {
+            if (confirm("ভিডিওটি ডিলিট করতে চান?")) {
                 const { error } = await supabaseClient.from('videos').delete().eq('id', id);
-                if (error) alert("ডিলিট করতে সমস্যা হয়েছে: " + error.message);
-                else loadVideos();
+                if (error) alert("এরর: " + error.message);
+                else loadAdminVideos();
             }
         }
 
-        loadVideos();
+        loadAdminVideos();
     }
 </script>
 </body>
