@@ -1,108 +1,138 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html lang="bn">
 <head>
-<meta charset="UTF-8">
-<title>MiniTube Pro Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body { font-family: Arial; background:#f4f6f9; padding:20px; }
-.card { background:#fff; padding:20px; border-radius:10px; margin-bottom:20px; }
-input, select { width:100%; padding:10px; margin:5px 0; }
-button { padding:10px; border:none; background:#28a745; color:#fff; cursor:pointer; }
-.video { border-bottom:1px solid #eee; padding:10px 0; }
-.delete { background:red; margin-top:5px; }
-.hidden { display:none; }
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniTube Admin - Control Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial; background:#f0f2f5; padding:20px; margin:0; }
+        .card { background:#fff; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+        input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ddd; border-radius:8px; box-sizing: border-box; }
+        button { width:100%; padding:12px; border:none; background:#28a745; color:#fff; cursor:pointer; border-radius:8px; font-weight:bold; }
+        .video-item { border-bottom:1px solid #eee; padding:10px 0; display:flex; justify-content:space-between; align-items:center; }
+        .btn-del { background:red; width:auto; padding:5px 12px; }
+        .hidden { display:none; }
+    </style>
 </head>
-
 <body>
 
-<div id="login" class="card">
-<h2>Admin Login</h2>
-<input id="emailInput" placeholder="Email">
-<input id="passwordInput" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
+<div id="login-box" class="card">
+    <h2>Admin Access</h2>
+    <input id="email" placeholder="ইমেইল">
+    <input id="pass" type="password" placeholder="পাসওয়ার্ড">
+    <button onclick="login()">Login</button>
 </div>
 
 <div id="dashboard" class="hidden">
+    <div class="card" style="background: #fff9e6;">
+        <h3>App Settings</h3>
+        <label>Ad Link:</label>
+        <input id="set-ad-link" placeholder="নতুন অ্যাড লিঙ্ক">
+        <label>Video Cost (Points):</label>
+        <input id="set-cost" type="number" placeholder="ভিডিও দেখতে কত পয়েন্ট কাটবে?">
+        <button onclick="updateSettings()" style="background:#007bff;">Update Settings</button>
+    </div>
 
-<div class="card">
-<h2>Add Video</h2>
-<input id="title" placeholder="Title">
-<input id="channel" placeholder="Channel">
-<input id="url" placeholder="Video URL">
-<input id="thumb" placeholder="Thumbnail (optional)">
-<select id="category">
-<option>Movie</option>
-<option>Funny</option>
-<option>Music</option>
-</select>
-<button onclick="addVideo()">Save</button>
-</div>
+    <div class="card">
+        <h3>Add New Video</h3>
+        <input id="v-title" placeholder="টাইটেল">
+        <input id="v-channel" placeholder="চ্যানেলের নাম">
+        <input id="v-url" placeholder="ভিডিও ইউআরএল (Dropbox/Direct)">
+        <input id="v-thumb" placeholder="থাম্বনেইল ইউআরএল">
+        <select id="v-cat">
+            <option>Movie</option><option>Funny</option><option>Music</option>
+        </select>
+        <button onclick="addVideo()">Upload Video</button>
+    </div>
 
-<div class="card">
-<h2>All Videos</h2>
-<div id="list"></div>
-</div>
-
-<button onclick="logout()">Logout</button>
-
+    <div class="card">
+        <h3>Manage Videos</h3>
+        <div id="v-list">লোড হচ্ছে...</div>
+    </div>
+    
+    <button onclick="logout()" style="background:#555;">Logout</button>
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
- "https://psvpzoblbyfrofzaltbw.supabase.com",
- "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ"
-);
+    const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
+    const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
+    const supabaseAdmin = supabase.createClient(S_URL, S_KEY);
 
-async function login() {
- const email = document.getElementById("emailInput").value;
- const password = document.getElementById("passwordInput").value;
+    async function login() {
+        const { error } = await supabaseAdmin.auth.signInWithPassword({
+            email: document.getElementById('email').value,
+            password: document.getElementById('pass').value
+        });
+        if (error) return alert("ভুল তথ্য!");
+        location.reload();
+    }
 
- const { error } = await supabase.auth.signInWithPassword({ email, password });
+    async function updateSettings() {
+        const ad = document.getElementById('set-ad-link').value;
+        const cost = document.getElementById('set-cost').value;
+        const { error } = await supabaseAdmin.from('settings').update({ 
+            ad_link: ad, 
+            min_points_to_play: parseInt(cost) 
+        }).eq('id', 1);
+        
+        if (error) alert("সেটিংস আপডেট হয়নি!");
+        else alert("আপডেট হয়েছে!");
+    }
 
- if (error) return alert("Login failed!");
+    async function addVideo() {
+        let url = document.getElementById('v-url').value;
+        if(url.includes("dropbox.com")) url = url.split('?')[0] + "?raw=1";
 
- document.getElementById("login").classList.add("hidden");
- document.getElementById("dashboard").classList.remove("hidden");
- loadVideos();
-}
+        const { error } = await supabaseAdmin.from('videos').insert([{
+            title: document.getElementById('v-title').value,
+            channel: document.getElementById('v-channel').value,
+            url: url,
+            thumbnail: document.getElementById('v-thumb').value || "https://via.placeholder.com/150",
+            category: document.getElementById('v-cat').value
+        }]);
+        if (error) alert("সেভ হয়নি!");
+        else { alert("সেভ হয়েছে!"); loadData(); }
+    }
 
-async function logout() {
- await supabase.auth.signOut();
- location.reload();
-}
+    async function loadData() {
+        // সেটিংস লোড
+        const { data: settings } = await supabaseAdmin.from('settings').select('*').single();
+        if (settings) {
+            document.getElementById('set-ad-link').value = settings.ad_link;
+            document.getElementById('set-cost').value = settings.min_points_to_play;
+        }
 
-async function addVideo() {
- let url = document.getElementById("url").value.trim();
- let thumb = document.getElementById("thumb").value.trim();
+        // ভিডিও লোড
+        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
+        const list = document.getElementById('v-list');
+        list.innerHTML = '';
+        videos.forEach(v => {
+            list.innerHTML += `<div class="video-item">
+                <span>${v.title}</span>
+                <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
+            </div>`;
+        });
+    }
 
- if (!url) return alert("URL লাগবে!");
+    async function deleteVideo(id) {
+        if(!confirm("মুছে ফেলবেন?")) return;
+        await supabaseAdmin.from('videos').delete().eq('id', id);
+        loadData();
+    }
 
- if (url.includes("dropbox.com")) {
-   url = url.split('?')[0] + "?raw=1";
- }
+    async function logout() { await supabaseAdmin.auth.signOut(); location.reload(); }
 
- if (!thumb) {
-   thumb = "https://via.placeholder.com/320x180?text=MiniTube";
- }
-
- const { error } = await supabase.from("videos").insert([{
-   title: document.getElementById("title").value,
-   channel: document.getElementById("channel").value,
-   url: url,
-   thumbnail: thumb,
-   category: document.getElementById("category").value
- }]);
-
- if (error) return alert("Save failed!");
-
- alert("Saved!");
- loadVideos();
-}
+    supabaseAdmin.auth.getSession().then(({ data }) => {
+        if (data.session) {
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            loadData();
+        }
+    });
+</script>
+</body>
+</html>}
 
 async function loadVideos() {
  const { data } = await supabase
