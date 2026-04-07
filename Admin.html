@@ -2,107 +2,77 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniTube Admin - Direct Access</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>MiniTube Admin - Control Panel</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; margin:0; }
-        .card { background:#fff; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-        h3 { margin-top: 0; color: #333; }
-        label { font-size: 14px; font-weight: bold; color: #555; }
-        input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ddd; border-radius:8px; box-sizing: border-box; }
-        button { width:100%; padding:12px; border:none; background:#28a745; color:#fff; cursor:pointer; border-radius:8px; font-weight:bold; font-size: 16px; margin-top: 10px; }
-        .video-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .video-info { display: flex; flex-direction: column; }
-        .btn-del { background:#ff3b30; width:auto; padding:6px 15px; font-size: 13px; }
-        .loading-text { text-align: center; color: #888; }
-        /* লিস্টে লোগো দেখার জন্য ছোট স্টাইল */
-        .v-thumb-preview { width: 50px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 10px; }
-        .v-row { display: flex; align-items: center; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .box { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-save { background: #007bff; color: #fff; }
+        .btn-add { background: #28a745; color: #fff; }
     </style>
 </head>
 <body>
 
-    <div class="card" style="border-top: 5px solid #ffd700;">
-        <h3>App Settings</h3>
-        <label>অ্যাড লিঙ্ক (Ad Link):</label>
-        <input id="set-ad-link" placeholder="নতুন অ্যাড লিঙ্ক দিন">
-        <label>ভিডিওর দাম (Points Cost):</label>
-        <input id="set-cost" type="number" placeholder="কত পয়েন্ট কাটবে?">
-        <button onclick="updateSettings()" style="background:#007bff;">Update Settings</button>
+    <div class="box">
+        <h2>⚙️ App Settings</h2>
+        <input id="set-ad" placeholder="Ad Link (বিজ্ঞাপন লিঙ্ক)">
+        <input id="set-cost" type="number" placeholder="Play Cost (ভিডিও দেখতে কত পয়েন্ট লাগবে)">
+        <button class="btn-save" onclick="updateSettings()">Save Settings</button>
     </div>
 
-    <div class="card" style="border-top: 5px solid #28a745;">
-        <h3>Add New Video</h3>
-        <input id="v-title" placeholder="ভিডিওর শিরোনাম">
-        <input id="v-channel" placeholder="চ্যানেলের নাম">
-        <input id="v-url" placeholder="ভিডিও লিঙ্ক (Dropbox/Direct)">
-        <input id="v-thumb" placeholder="থাম্বনেইল লিঙ্ক (না দিলে টেলিগ্রাম লোগো বসবে)">
-        <select id="v-cat">
-            <option>Movie</option>
-            <option>Funny</option>
-            <option>Music</option>
-        </select>
-        <button onclick="addVideo()">Save Video</button>
-    </div>
-
-    <div class="card">
-        <h3>All Videos</h3>
-        <div id="v-list" class="loading-text">লোড হচ্ছে...</div>
+    <div class="box">
+        <h2>🎬 Add New Video</h2>
+        <input id="v-title" placeholder="Video Title">
+        <input id="v-url" placeholder="Direct Video URL">
+        <input id="v-thumb" placeholder="Thumbnail Image URL">
+        <button class="btn-add" onclick="addVideo()">Add Video</button>
     </div>
 
 <script>
-    const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
-    const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
-    const supabaseAdmin = supabase.createClient(S_URL, S_KEY);
+    const firebaseConfig = {
+        apiKey: "AIzaSyC1V3fowb7Tt1PEIqQYNQQQWGsuAwiJqk8",
+        authDomain: "mini-tube-6bf85.firebaseapp.com",
+        projectId: "mini-tube-6bf85",
+        storageBucket: "mini-tube-6bf85.firebasestorage.app",
+        messagingSenderId: "415016883999",
+        appId: "1:415016883999:web:9b9d0af2e3244af794022a"
+    };
 
-    // টেলিগ্রাম লোগো লিঙ্ক (ডিফল্ট থাম্বনেইল হিসেবে)
-    const DEFAULT_THUMB = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/512px-Telegram_logo.svg.png";
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     async function updateSettings() {
-        const ad = document.getElementById('set-ad-link').value;
-        const cost = document.getElementById('set-cost').value;
-        const { error } = await supabaseAdmin.from('settings').update({ 
-            ad_link: ad, 
-            min_points_to_play: parseInt(cost) 
-        }).eq('id', 1);
-        if (error) alert("সেটিংস আপডেট হয়নি!");
-        else alert("সফলভাবে আপডেট হয়েছে!");
+        const ad = document.getElementById('set-ad').value;
+        const cost = Number(document.getElementById('set-cost').value);
+        if(!ad || !cost) return alert("সব ঘর পূরণ করুন!");
+        
+        await db.collection('settings').doc('app_settings').set({ ad_link: ad, min_points: cost });
+        alert("Settings Saved successfully!");
     }
 
     async function addVideo() {
         const title = document.getElementById('v-title').value;
-        let url = document.getElementById('v-url').value.trim();
-        const channel = document.getElementById('v-channel').value;
-        let thumb = document.getElementById('v-thumb').value.trim();
-        const cat = document.getElementById('v-cat').value;
+        let url = document.getElementById('v-url').value;
+        const thumb = document.getElementById('v-thumb').value;
+        
+        if(!title || !url || !thumb) return alert("সব ঘর পূরণ করুন!");
+        if(url.includes("dropbox.com")) url = url.split('?')[0] + "?raw=1";
 
-        if (!title || !url) return alert("টাইটেল এবং লিঙ্ক অবশ্যই দিতে হবে!");
-
-        // ড্রপবক্স লিঙ্ক ফিক্স
-        if(url.includes("dropbox.com")) {
-            url = url.split('?')[0] + "?raw=1";
-        }
-
-        // থাম্বনেইল না দিলে টেলিগ্রাম লোগো সেট করা
-        if (!thumb) {
-            thumb = DEFAULT_THUMB;
-        }
-
-        const { error } = await supabaseAdmin.from('videos').insert([{
-            title: title,
-            channel: channel,
-            url: url,
-            thumbnail: thumb,
-            category: cat
-        }]);
-
-        if (error) alert("সেভ করতে সমস্যা হয়েছে!");
-        else {
-            alert("সফলভাবে সেভ হয়েছে!");
-            document.getElementById('v-title').value = "";
-            document.getElementById('v-url').value = "";
-            document.getElementById('v-thumb').value = "";
+        await db.collection('videos').add({ title, url, thumbnail: thumb, createdAt: new Date() });
+        alert("Video added to database!");
+        
+        // Clear inputs
+        document.getElementById('v-title').value = '';
+        document.getElementById('v-url').value = '';
+        document.getElementById('v-thumb').value = '';
+    }
+</script>
+</body>
+</html>            document.getElementById('v-thumb').value = "";
             loadData();
         }
     }
