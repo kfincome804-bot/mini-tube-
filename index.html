@@ -5,104 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MiniTube - Watch & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        :root { --main: #ff0000; --bg: #ffffff; --accent: #28a745; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); color: #333; overflow-x: hidden; }
-        header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; background: #fff; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; }
-        .points { background: #ffd700; padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .ad-btn { background: var(--accent); color: #fff; border: none; padding: 14px; width: 92%; margin: 15px auto; display: block; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; text-align: center; }
-        .video-grid { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative; cursor: pointer; }
-        .thumb { width: 100%; height: 180px; background-size: cover; background-position: center; background-color: #ddd; }
-        .v-info { padding: 12px; }
-        .price-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
-        #player-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; }
-        video { width: 100%; height: auto; max-height: 280px; margin-top: 60px; background: #000; }
-        .player-details { padding: 20px; color: #fff; }
-        .close-btn { background: var(--main); color: #fff; border: none; padding: 12px; width: 80%; margin: 30px auto; display: block; border-radius: 8px; font-weight: bold; }
+        :root { --primary: #ff0000; --bg: #f8f9fa; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); }
+        header { background: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .logo { color: var(--primary); font-weight: 800; font-size: 22px; font-style: italic; margin: 0; }
+        .points-box { background: #ffd700; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+        .search-area { padding: 10px 15px; background: #fff; position: sticky; top: 55px; z-index: 999; }
+        .search-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 30px; outline: none; background: #f1f3f4; box-sizing: border-box; }
+        .ad-banner { background: linear-gradient(135deg, #28a745, #1e7e34); color: #fff; margin: 15px; padding: 15px; border-radius: 15px; text-align: center; cursor: pointer; }
+        .video-grid { padding: 5px 15px; display: grid; gap: 18px; }
+        .v-card { background: #fff; border-radius: 15px; overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,0.06); position: relative; }
+        .v-thumb { width: 100%; height: 190px; background-size: cover; background-position: center; background-color: #ddd; }
+        .v-price { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.8); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 12px; }
+        #player-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; }
+        video { width: 100%; height: auto; margin-top: 25%; }
     </style>
 </head>
 <body>
 
     <header>
-        <h2 style="color: var(--main); margin: 0; font-style: italic;">MiniTube</h2>
-        <div class="points">💰 <span id="u-points">0</span></div>
+        <h2 class="logo">MiniTube</h2>
+        <div class="points-box">🪙 <span id="u-pts">0</span></div>
     </header>
 
-    <button class="ad-btn" onclick="watchAdAndEarn()">📺 বিজ্ঞাপন দেখে ১০ পয়েন্ট নিন</button>
-
-    <div id="main-page">
-        <div id="video-list" class="video-grid">ভিডিও লোড হচ্ছে...</div>
+    <div class="search-area">
+        <input type="text" id="search-box" class="search-input" placeholder="ভিডিও খুঁজুন..." onkeyup="filterVideos()">
     </div>
 
-    <div id="player-screen">
-        <video id="v-player" controls playsinline></video>
-        <div class="player-details">
-            <h3 id="v-title" style="margin: 0;"></h3>
-            <p id="v-channel" style="color: #bbb; margin: 10px 0;"></p>
-            <button class="close-btn" onclick="closePlayer()">বন্ধ করুন (Back)</button>
+    <div class="ad-banner" onclick="claimReward()">
+        <b>🎁 বোনাস পয়েন্ট সংগ্রহ করুন!</b><br><small>বিজ্ঞাপন দেখুন এবং ১০ পয়েন্ট পান</small>
+    </div>
+
+    <div id="video-list" class="video-grid">লোডিং হচ্ছে...</div>
+
+    <div id="player-view">
+        <video id="main-video" controls playsinline></video>
+        <div style="padding: 20px; color: #fff;">
+            <h3 id="p-title" style="margin:0"></h3>
+            <button onclick="closePlayer()" style="background:var(--primary); color:#fff; border:none; padding:12px; border-radius:10px; width:100%; font-weight:bold; margin-top:30px;">বন্ধ করুন</button>
         </div>
     </div>
 
-    <script>
-        const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
-        const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
-        const supabaseClient = supabase.createClient(S_URL, S_KEY);
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyC1V3fowb7Tt1PEIqQYNQQQWGsuAwiJqk8",
+        authDomain: "mini-tube-6bf85.firebaseapp.com",
+        projectId: "mini-tube-6bf85",
+        storageBucket: "mini-tube-6bf85.firebasestorage.app",
+        messagingSenderId: "415016883999",
+        appId: "1:415016883999:web:9b9d0af2e3244af794022a"
+    };
 
-        const tg = window.Telegram.WebApp;
-        
-        // ১. ইউজার আইডি নিশ্চিত করা (টেলিগ্রামের বাইরে টেস্ট করার জন্য র‍্যান্ডম আইডি)
-        let userId = tg.initDataUnsafe.user?.id?.toString();
-        if (!userId) {
-            userId = "guest_" + Math.floor(Math.random() * 9999);
-        }
-        
-        let userPoints = 0;
-        let dynamicAdLink = ""; 
-        let minPointsRequired = 5;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const tg = window.Telegram.WebApp;
 
-        async function init() {
-            try {
-                tg.expand();
-                console.log("App Initializing for:", userId);
+    let userId = tg.initDataUnsafe.user?.id?.toString() || "guest_user";
+    let myPoints = 0, allVideos = [], adLink = "", playCost = 5;
 
-                // ২. সেটিংস লোড
-                const { data: settings } = await supabaseClient.from('settings').select('*').eq('id', 1).maybeSingle();
-                if (settings) {
-                    dynamicAdLink = settings.ad_link;
-                    minPointsRequired = settings.min_points_to_play || 5;
-                }
-
-                // ৩. ইউজার চেক এবং পয়েন্ট লোড
-                let { data: user, error: uError } = await supabaseClient.from('users').select('*').eq('id', userId).maybeSingle();
-
-                if (!user) {
-                    console.log("Creating new user...");
-                    const { data: newUser, error: insError } = await supabaseClient.from('users').insert([
-                        { id: userId, points: 50 }
-                    ]).select().single();
-                    
-                    if (newUser) {
-                        userPoints = newUser.points;
-                    } else {
-                        console.error("Insert Failed:", insError);
-                        userPoints = 0;
-                    }
-                } else {
-                    userPoints = user.points;
-                }
-
-                updateUI();
-                loadVideos();
-            } catch (e) {
-                console.error("Critical Init Error:", e);
+    async function init() {
+        tg.expand();
+        db.collection('settings').doc('app_settings').onSnapshot(doc => {
+            if(doc.exists) {
+                adLink = doc.data().ad_link;
+                playCost = doc.data().min_points || 5;
             }
-        }
+        });
 
-        function updateUI() {
-            document.getElementById('u-points').innerText = userPoints;
-        }
+        const userRef = db.collection('users').doc(userId);
+        userRef.onSnapshot(async doc => {
+            if(!doc.exists) {
+                await userRef.set({ points: 50 });
+            } else {
+                myPoints = doc.data().points;
+                document.getElementById('u-pts').innerText = myPoints;
+            }
+        });
+        loadVideos();
+    }
+
+    async function loadVideos() {
+        db.collection('videos').onSnapshot(snapshot => {
+            allVideos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderVideos(allVideos);
+        });
+    }
+
+    function renderVideos(list) {
+        const container = document.getElementById('video-list');
+        container.innerHTML = '';
+        list.forEach(v => {
+            container.innerHTML += `
+                <div class="v-card" onclick="playVideo('${v.url}', '${v.title}')">
+                    <div class="v-thumb" style="background-image:url('${v.thumbnail}')">
+                        <div class="v-price">${playCost} pts</div>
+                    </div>
+                    <div style="padding:14px;">
+                        <div style="font-weight:bold;">${v.title}</div>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function filterVideos() {
+        const q = document.getElementById('search-box').value.toLowerCase();
+        const filtered = allVideos.filter(v => v.title.toLowerCase().includes(q));
+        renderVideos(filtered);
+    }
+
+    async function playVideo(url, title) {
+        if(myPoints < playCost) return tg.showAlert("পর্যাপ্ত পয়েন্ট নেই!");
+        if(adLink) window.open(adLink, "_blank");
+        
+        await db.collection('users').doc(userId).update({ points: myPoints - playCost });
+        document.getElementById('player-view').style.display = 'block';
+        const v = document.getElementById('main-video');
+        v.src = url; v.play();
+        document.getElementById('p-title').innerText = title;
+        tg.BackButton.show();
+    }
+
+    function claimReward() {
+        if(adLink) window.open(adLink, "_blank");
+        setTimeout(async () => {
+            await db.collection('users').doc(userId).update({ points: myPoints + 10 });
+            tg.showAlert("অভিনন্দন! আপনি ১০ পয়েন্ট পেয়েছেন।");
+        }, 8000);
+    }
+
+    function closePlayer() {
+        document.getElementById('main-video').pause();
+        document.getElementById('player-view').style.display = 'none';
+        tg.BackButton.hide();
+    }
+
+    tg.onEvent('backButtonClicked', closePlayer);
+    init();
+</script>
+</body>
+</html>        }
 
         async function loadVideos() {
             const { data: videos } = await supabaseClient.from('videos').select('*').order('id', { ascending: false });
