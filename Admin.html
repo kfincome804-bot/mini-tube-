@@ -16,6 +16,9 @@
         .video-info { display: flex; flex-direction: column; }
         .btn-del { background:#ff3b30; width:auto; padding:6px 15px; font-size: 13px; }
         .loading-text { text-align: center; color: #888; }
+        /* লিস্টে লোগো দেখার জন্য ছোট স্টাইল */
+        .v-thumb-preview { width: 50px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 10px; }
+        .v-row { display: flex; align-items: center; }
     </style>
 </head>
 <body>
@@ -34,7 +37,7 @@
         <input id="v-title" placeholder="ভিডিওর শিরোনাম">
         <input id="v-channel" placeholder="চ্যানেলের নাম">
         <input id="v-url" placeholder="ভিডিও লিঙ্ক (Dropbox/Direct)">
-        <input id="v-thumb" placeholder="থাম্বনেইল ইউআরএল">
+        <input id="v-thumb" placeholder="থাম্বনেইল লিঙ্ক (না দিলে টেলিগ্রাম লোগো বসবে)">
         <select id="v-cat">
             <option>Movie</option>
             <option>Funny</option>
@@ -49,60 +52,101 @@
     </div>
 
 <script>
-    // সুপাবেস কানেকশন
     const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
     const supabaseAdmin = supabase.createClient(S_URL, S_KEY);
 
-    // সেটিংস আপডেট করা
+    // টেলিগ্রাম লোগো লিঙ্ক (ডিফল্ট থাম্বনেইল হিসেবে)
+    const DEFAULT_THUMB = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/512px-Telegram_logo.svg.png";
+
     async function updateSettings() {
         const ad = document.getElementById('set-ad-link').value;
         const cost = document.getElementById('set-cost').value;
-        
         const { error } = await supabaseAdmin.from('settings').update({ 
             ad_link: ad, 
             min_points_to_play: parseInt(cost) 
         }).eq('id', 1);
-        
-        if (error) alert("সেটিংস আপডেট হতে সমস্যা হয়েছে!");
-        else alert("সেটিংস সফলভাবে আপডেট হয়েছে!");
+        if (error) alert("সেটিংস আপডেট হয়নি!");
+        else alert("সফলভাবে আপডেট হয়েছে!");
     }
 
-    // নতুন ভিডিও যোগ করা
     async function addVideo() {
         const title = document.getElementById('v-title').value;
-        let url = document.getElementById('v-url').value;
+        let url = document.getElementById('v-url').value.trim();
         const channel = document.getElementById('v-channel').value;
-        const thumb = document.getElementById('v-thumb').value;
+        let thumb = document.getElementById('v-thumb').value.trim();
         const cat = document.getElementById('v-cat').value;
 
-        if (!title || !url) return alert("টাইটেল এবং লিঙ্ক দিন!");
+        if (!title || !url) return alert("টাইটেল এবং লিঙ্ক অবশ্যই দিতে হবে!");
 
-        // ড্রপবক্স লিঙ্ক চেক
+        // ড্রপবক্স লিঙ্ক ফিক্স
         if(url.includes("dropbox.com")) {
             url = url.split('?')[0] + "?raw=1";
+        }
+
+        // থাম্বনেইল না দিলে টেলিগ্রাম লোগো সেট করা
+        if (!thumb) {
+            thumb = DEFAULT_THUMB;
         }
 
         const { error } = await supabaseAdmin.from('videos').insert([{
             title: title,
             channel: channel,
             url: url,
-            thumbnail: thumb || "https://via.placeholder.com/150",
+            thumbnail: thumb,
             category: cat
         }]);
 
-        if (error) alert("ভিডিও সেভ হয়নি!");
+        if (error) alert("সেভ করতে সমস্যা হয়েছে!");
         else {
-            alert("ভিডিও সফলভাবে সেভ হয়েছে!");
+            alert("সফলভাবে সেভ হয়েছে!");
             document.getElementById('v-title').value = "";
             document.getElementById('v-url').value = "";
+            document.getElementById('v-thumb').value = "";
             loadData();
         }
     }
 
-    // ডাটা লোড করা (সেটিংস এবং ভিডিও লিস্ট)
     async function loadData() {
-        // ১. সেটিংস লোড
+        const { data: settings } = await supabaseAdmin.from('settings').select('*').eq('id', 1).single();
+        if (settings) {
+            document.getElementById('set-ad-link').value = settings.ad_link;
+            document.getElementById('set-cost').value = settings.min_points_to_play;
+        }
+
+        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
+        const list = document.getElementById('v-list');
+        list.innerHTML = '';
+        
+        if (videos && videos.length > 0) {
+            videos.forEach(v => {
+                list.innerHTML += `
+                    <div class="video-item">
+                        <div class="v-row">
+                            <img src="${v.thumbnail}" class="v-thumb-preview">
+                            <div class="video-info">
+                                <strong>${v.title}</strong>
+                                <small style="color:#888">${v.category}</small>
+                            </div>
+                        </div>
+                        <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
+                    </div>`;
+            });
+        } else {
+            list.innerHTML = 'কোনো ভিডিও নেই।';
+        }
+    }
+
+    async function deleteVideo(id) {
+        if(!confirm("মুছে ফেলবেন?")) return;
+        await supabaseAdmin.from('videos').delete().eq('id', id);
+        loadData();
+    }
+
+    window.onload = loadData;
+</script>
+</body>
+</html>        // ১. সেটিংস লোড
         const { data: settings } = await supabaseAdmin.from('settings').select('*').eq('id', 1).single();
         if (settings) {
             document.getElementById('set-ad-link').value = settings.ad_link;
