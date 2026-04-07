@@ -3,29 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MiniTube - Dynamic Ads & Points</title>
+    <title>MiniTube - Watch & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --main: #ff0000; --bg: #ffffff; --accent: #28a745; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); overflow-x: hidden; }
-        header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; background: #f8f8f8; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .points { background: #ffd700; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
-        .ad-btn { background: var(--accent); color: #fff; border: none; padding: 12px; width: 92%; margin: 10px auto; display: block; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; }
-        .video-grid { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; position: relative; }
-        .thumb { width: 100%; height: 180px; background-size: cover; background-position: center; background-color: #eee; }
-        .v-info { padding: 10px; }
-        .price-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 3px 8px; border-radius: 5px; font-size: 12px; }
-        #player-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; color: #fff; }
-        video { width: 100%; max-height: 250px; background: #000; }
-        .close-btn { background: var(--main); color: #fff; border: none; padding: 12px; width: 90%; margin: 20px auto; display: block; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        body { font-family: sans-serif; margin: 0; background: var(--bg); color: #333; }
+        header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; background: #fff; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; }
+        .points { background: #ffd700; padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .ad-btn { background: var(--accent); color: #fff; border: none; padding: 14px; width: 90%; margin: 15px auto; display: block; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .video-grid { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); gap: 20px; }
+        .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: relative; }
+        .thumb { width: 100%; height: 200px; background-size: cover; background-position: center; background-color: #ddd; }
+        .v-info { padding: 12px; }
+        .price-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+        #player-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; }
+        video { width: 100%; height: auto; max-height: 300px; margin-top: 50px; }
+        .player-details { padding: 20px; color: #fff; }
+        .close-btn { background: var(--main); color: #fff; border: none; padding: 12px; width: 80%; margin: 30px auto; display: block; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <header>
-        <h2 style="color: var(--main); margin: 0;">MiniTube</h2>
+        <h2 style="color: var(--main); margin: 0; font-style: italic;">MiniTube</h2>
         <div class="points">💰 <span id="u-points">0</span></div>
     </header>
 
@@ -37,23 +38,21 @@
 
     <div id="player-screen">
         <video id="v-player" controls playsinline></video>
-        <div style="padding: 20px;">
+        <div class="player-details">
             <h3 id="v-title" style="margin: 0;"></h3>
-            <p id="v-channel" style="color: #aaa; margin: 10px 0; font-size: 14px;"></p>
+            <p id="v-channel" style="color: #bbb;"></p>
             <button class="close-btn" onclick="closePlayer()">বন্ধ করুন (Back)</button>
         </div>
     </div>
 
     <script>
-        // --- Supabase Config (আপনার দেওয়া ডিটেইলস) ---
-        const S_URL = "https://psvpzoblbyfromfzaltbw.supabase.co";
+        const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
         const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
         const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
         const tg = window.Telegram.WebApp;
-        const userId = tg.initDataUnsafe.user?.id?.toString() || "guest_123";
+        const userId = tg.initDataUnsafe.user?.id?.toString() || "guest_user";
         
-        // গ্লোবাল সেটিংস ভেরিয়েবল
         let userPoints = 0;
         let dynamicAdLink = ""; 
         let minPointsRequired = 5;
@@ -61,14 +60,14 @@
         async function init() {
             tg.expand();
             
-            // ১. ডাটাবেস থেকে সেটিংস (অ্যাড লিঙ্ক ও পয়েন্ট) লোড করা
-            const { data: settings } = await supabaseClient.from('settings').select('*').eq('id', 1).single();
+            // ১. সেটিংস লোড
+            const { data: settings } = await supabaseClient.from('settings').select('*').single();
             if (settings) {
                 dynamicAdLink = settings.ad_link;
-                minPointsRequired = settings.min_points_to_play || 5;
+                minPointsRequired = settings.min_points_to_play;
             }
 
-            // ২. ইউজার ডাটা চেক বা তৈরি
+            // ২. ইউজার চেক
             let { data: user } = await supabaseClient.from('users').select('*').eq('id', userId).single();
             if (!user) {
                 const { data } = await supabaseClient.from('users').insert([{ id: userId, points: 50 }]).select().single();
@@ -79,12 +78,10 @@
             loadVideos();
         }
 
-        function updateUI() {
-            document.getElementById('u-points').innerText = userPoints;
-        }
+        function updateUI() { document.getElementById('u-points').innerText = userPoints; }
 
         async function loadVideos() {
-            const { data: videos } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
+            const { data: videos } = await supabaseClient.from('videos').select('*').order('id', { ascending: false });
             const list = document.getElementById('video-list');
             list.innerHTML = '';
             if (videos) {
@@ -92,7 +89,7 @@
                     list.innerHTML += `
                         <div class="card" onclick="handleVideoClick('${v.url}', '${v.title}', '${v.channel}')">
                             <div class="thumb" style="background-image:url('${v.thumbnail}')"></div>
-                            <div class="price-tag">Cost: ${minPointsRequired}</div>
+                            <div class="price-tag">Cost: ${minPointsRequired} pts</div>
                             <div class="v-info"><b>${v.title}</b><br><small>${v.channel}</small></div>
                         </div>
                     `;
@@ -100,24 +97,17 @@
             }
         }
 
-        // ভিডিও প্লে করার লজিক (অ্যাডমিন প্যানেলের সেটিংস অনুযায়ী)
         async function handleVideoClick(url, title, channel) {
             if (userPoints < minPointsRequired) {
-                tg.showAlert(`ব্যালেন্স কম! ভিডিও দেখতে ${minPointsRequired} পয়েন্ট লাগবে।`);
-                return;
+                return tg.showAlert(`আপনার যথেষ্ট পয়েন্ট নেই! ভিডিও দেখতে ${minPointsRequired} পয়েন্ট লাগবে।`);
             }
 
-            // অ্যাডমিন প্যানেলের লিঙ্ক ওপেন করা (যদি থাকে)
-            if (dynamicAdLink) {
-                window.open(dynamicAdLink, "_blank");
-            }
+            if (dynamicAdLink) window.open(dynamicAdLink, "_blank");
 
-            // পয়েন্ট কাটা ও আপডেট
             userPoints -= minPointsRequired;
             updateUI();
             await supabaseClient.from('users').update({ points: userPoints }).eq('id', userId);
 
-            // প্লেয়ার চালু
             document.getElementById('main-page').style.display = 'none';
             document.getElementById('player-screen').style.display = 'block';
             const player = document.getElementById('v-player');
@@ -128,22 +118,21 @@
             tg.BackButton.show();
         }
 
-        // বিজ্ঞাপন দেখে আয়
         function watchAdAndEarn() {
-            if (!dynamicAdLink) {
-                tg.showAlert("বর্তমানে কোনো বিজ্ঞাপন উপলব্ধ নেই।");
-                return;
-            }
-
-            tg.showConfirm("বিজ্ঞাপনটি দেখলে ১০ পয়েন্ট পাবেন। দেখতে চান?", (ok) => {
+            if (!dynamicAdLink) return tg.showAlert("কোনো অ্যাড নেই!");
+            
+            tg.showConfirm("অ্যাডটি দেখলে ১০ পয়েন্ট পাবেন। রাজি?", (ok) => {
                 if(ok) {
                     window.open(dynamicAdLink, "_blank");
+                    tg.MainButton.setText("পয়েন্ট সংগ্রহ করা হচ্ছে...");
+                    tg.MainButton.show();
                     setTimeout(async () => {
                         userPoints += 10;
                         updateUI();
                         await supabaseClient.from('users').update({ points: userPoints }).eq('id', userId);
-                        tg.showAlert("অভিনন্দন! ১০ পয়েন্ট যোগ করা হয়েছে।");
-                    }, 5000); // ৫ সেকেন্ড অপেক্ষা
+                        tg.MainButton.hide();
+                        tg.showAlert("অভিনন্দন! ১০ পয়েন্ট যোগ হয়েছে।");
+                    }, 8000);
                 }
             });
         }
