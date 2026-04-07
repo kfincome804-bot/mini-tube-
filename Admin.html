@@ -3,106 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniTube Admin - Control Panel</title>
+    <title>MiniTube Admin - Direct Access</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: Arial; background:#f0f2f5; padding:20px; margin:0; }
+        body { font-family: Arial, sans-serif; background:#f0f2f5; padding:20px; margin:0; }
         .card { background:#fff; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #333; }
+        label { font-size: 14px; font-weight: bold; color: #555; }
         input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ddd; border-radius:8px; box-sizing: border-box; }
-        button { width:100%; padding:12px; border:none; background:#28a745; color:#fff; cursor:pointer; border-radius:8px; font-weight:bold; }
-        .video-item { border-bottom:1px solid #eee; padding:10px 0; display:flex; justify-content:space-between; align-items:center; }
-        .btn-del { background:red; width:auto; padding:5px 12px; }
-        .hidden { display:none; }
+        button { width:100%; padding:12px; border:none; background:#28a745; color:#fff; cursor:pointer; border-radius:8px; font-weight:bold; font-size: 16px; margin-top: 10px; }
+        .video-item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .video-info { display: flex; flex-direction: column; }
+        .btn-del { background:#ff3b30; width:auto; padding:6px 15px; font-size: 13px; }
+        .loading-text { text-align: center; color: #888; }
     </style>
 </head>
 <body>
 
-<div id="login-box" class="card">
-    <h2>Admin Access</h2>
-    <input id="email" placeholder="ইমেইল">
-    <input id="pass" type="password" placeholder="পাসওয়ার্ড">
-    <button onclick="login()">Login</button>
-</div>
-
-<div id="dashboard" class="hidden">
-    <div class="card" style="background: #fff9e6;">
+    <div class="card" style="border-top: 5px solid #ffd700;">
         <h3>App Settings</h3>
-        <label>Ad Link:</label>
-        <input id="set-ad-link" placeholder="নতুন অ্যাড লিঙ্ক">
-        <label>Video Cost (Points):</label>
-        <input id="set-cost" type="number" placeholder="ভিডিও দেখতে কত পয়েন্ট কাটবে?">
+        <label>অ্যাড লিঙ্ক (Ad Link):</label>
+        <input id="set-ad-link" placeholder="নতুন অ্যাড লিঙ্ক দিন">
+        <label>ভিডিওর দাম (Points Cost):</label>
+        <input id="set-cost" type="number" placeholder="কত পয়েন্ট কাটবে?">
         <button onclick="updateSettings()" style="background:#007bff;">Update Settings</button>
     </div>
 
-    <div class="card">
+    <div class="card" style="border-top: 5px solid #28a745;">
         <h3>Add New Video</h3>
-        <input id="v-title" placeholder="টাইটেল">
+        <input id="v-title" placeholder="ভিডিওর শিরোনাম">
         <input id="v-channel" placeholder="চ্যানেলের নাম">
-        <input id="v-url" placeholder="ভিডিও ইউআরএল (Dropbox/Direct)">
+        <input id="v-url" placeholder="ভিডিও লিঙ্ক (Dropbox/Direct)">
         <input id="v-thumb" placeholder="থাম্বনেইল ইউআরএল">
         <select id="v-cat">
-            <option>Movie</option><option>Funny</option><option>Music</option>
+            <option>Movie</option>
+            <option>Funny</option>
+            <option>Music</option>
         </select>
-        <button onclick="addVideo()">Upload Video</button>
+        <button onclick="addVideo()">Save Video</button>
     </div>
 
     <div class="card">
-        <h3>Manage Videos</h3>
-        <div id="v-list">লোড হচ্ছে...</div>
+        <h3>All Videos</h3>
+        <div id="v-list" class="loading-text">লোড হচ্ছে...</div>
     </div>
-    
-    <button onclick="logout()" style="background:#555;">Logout</button>
-</div>
 
 <script>
+    // সুপাবেস কানেকশন
     const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
     const supabaseAdmin = supabase.createClient(S_URL, S_KEY);
 
-    async function login() {
-        const { error } = await supabaseAdmin.auth.signInWithPassword({
-            email: document.getElementById('email').value,
-            password: document.getElementById('pass').value
-        });
-        if (error) return alert("ভুল তথ্য!");
-        location.reload();
-    }
-
+    // সেটিংস আপডেট করা
     async function updateSettings() {
         const ad = document.getElementById('set-ad-link').value;
         const cost = document.getElementById('set-cost').value;
+        
         const { error } = await supabaseAdmin.from('settings').update({ 
             ad_link: ad, 
             min_points_to_play: parseInt(cost) 
         }).eq('id', 1);
         
-        if (error) alert("সেটিংস আপডেট হয়নি!");
-        else alert("আপডেট হয়েছে!");
+        if (error) alert("সেটিংস আপডেট হতে সমস্যা হয়েছে!");
+        else alert("সেটিংস সফলভাবে আপডেট হয়েছে!");
     }
 
+    // নতুন ভিডিও যোগ করা
     async function addVideo() {
+        const title = document.getElementById('v-title').value;
         let url = document.getElementById('v-url').value;
-        if(url.includes("dropbox.com")) url = url.split('?')[0] + "?raw=1";
+        const channel = document.getElementById('v-channel').value;
+        const thumb = document.getElementById('v-thumb').value;
+        const cat = document.getElementById('v-cat').value;
+
+        if (!title || !url) return alert("টাইটেল এবং লিঙ্ক দিন!");
+
+        // ড্রপবক্স লিঙ্ক চেক
+        if(url.includes("dropbox.com")) {
+            url = url.split('?')[0] + "?raw=1";
+        }
 
         const { error } = await supabaseAdmin.from('videos').insert([{
-            title: document.getElementById('v-title').value,
-            channel: document.getElementById('v-channel').value,
+            title: title,
+            channel: channel,
             url: url,
-            thumbnail: document.getElementById('v-thumb').value || "https://via.placeholder.com/150",
-            category: document.getElementById('v-cat').value
+            thumbnail: thumb || "https://via.placeholder.com/150",
+            category: cat
         }]);
-        if (error) alert("সেভ হয়নি!");
-        else { alert("সেভ হয়েছে!"); loadData(); }
+
+        if (error) alert("ভিডিও সেভ হয়নি!");
+        else {
+            alert("ভিডিও সফলভাবে সেভ হয়েছে!");
+            document.getElementById('v-title').value = "";
+            document.getElementById('v-url').value = "";
+            loadData();
+        }
     }
 
+    // ডাটা লোড করা (সেটিংস এবং ভিডিও লিস্ট)
     async function loadData() {
-        // সেটিংস লোড
-        const { data: settings } = await supabaseAdmin.from('settings').select('*').single();
+        // ১. সেটিংস লোড
+        const { data: settings } = await supabaseAdmin.from('settings').select('*').eq('id', 1).single();
         if (settings) {
             document.getElementById('set-ad-link').value = settings.ad_link;
             document.getElementById('set-cost').value = settings.min_points_to_play;
         }
 
+        // ২. ভিডিও লিস্ট লোড
+        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
+        const list = document.getElementById('v-list');
+        list.innerHTML = '';
+        
+        if (videos && videos.length > 0) {
+            videos.forEach(v => {
+                list.innerHTML += `
+                    <div class="video-item">
+                        <div class="video-info">
+                            <strong>${v.title}</strong>
+                            <small style="color:#888">${v.category}</small>
+                        </div>
+                        <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
+                    </div>`;
+            });
+        } else {
+            list.innerHTML = 'কোনো ভিডিও পাওয়া যায়নি।';
+        }
+    }
+
+    // ভিডিও ডিলিট করা
+    async function deleteVideo(id) {
+        if(!confirm("আপনি কি নিশ্চিত যে এই ভিডিওটি মুছে ফেলবেন?")) return;
+        const { error } = await supabaseAdmin.from('videos').delete().eq('id', id);
+        if (error) alert("ডিলিট করা যায়নি!");
+        else loadData();
+    }
+
+    // পেজ লোড হলে ডাটা দেখাও
+    window.onload = loadData;
+
+</script>
+</body>
+</html>
         // ভিডিও লোড
         const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
         const list = document.getElementById('v-list');
