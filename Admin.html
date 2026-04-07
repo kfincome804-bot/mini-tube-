@@ -1,104 +1,147 @@
 <!DOCTYPE html>
-<html lang="bn">
+
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniTube Pro - Admin</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --main: #ff0000; --bg: #f0f2f5; --card-bg: #fff; --text: #333; --accent: #28a745; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .card { background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        h2 { color: var(--main); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #666; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: var(--accent); color: white; transition: 0.3s; }
-        .btn:disabled { background: #ccc; }
-    </style>
+<meta charset="UTF-8">
+<title>MiniTube Pro Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { font-family: Arial; background:#f4f6f9; padding:20px; }
+.card { background:#fff; padding:20px; border-radius:10px; margin-bottom:20px; }
+input, select { width:100%; padding:10px; margin:5px 0; }
+button { padding:10px; border:none; background:#28a745; color:#fff; cursor:pointer; }
+.video { border-bottom:1px solid #eee; padding:10px 0; }
+.delete { background:red; margin-top:5px; }
+.hidden { display:none; }
+</style>
+
 </head>
+
 <body>
 
+<div id="login" class="card">
+<h2>Admin Login</h2>
+<input id="emailInput" placeholder="Email">
+<input id="passwordInput" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<div id="dashboard" class="hidden">
+
 <div class="card">
-    <h2>নতুন ভিডিও যোগ করুন</h2>
-    <div class="form-group">
-        <label>ভিডিও টাইটেল</label>
-        <input type="text" id="v-title" placeholder="ভিডিওর শিরোনাম">
-    </div>
-    <div class="form-group">
-        <label>চ্যানেল নাম</label>
-        <input type="text" id="v-channel" placeholder="চ্যানেল বা ইউজারের নাম">
-    </div>
-    <div class="form-group">
-        <label>ভিডিও লিঙ্ক (Dropbox/Direct MP4)</label>
-        <input type="text" id="v-url" placeholder="লিঙ্ক পেস্ট করুন">
-    </div>
-    <div class="form-group">
-        <label>থাম্বনেইল লিঙ্ক (ঐচ্ছিক)</label>
-        <input type="text" id="v-thumb" placeholder="ছবির লিঙ্ক">
-    </div>
-    <div class="form-group">
-        <label>ক্যাটাগরি</label>
-        <select id="v-cat">
-            <option value="Movie">Movie</option>
-            <option value="Funny">Funny</option>
-            <option value="Music">Music</option>
-        </select>
-    </div>
-    <button class="btn" id="save-btn" onclick="saveVideo()">সেভ করুন</button>
+<h2>Add Video</h2>
+<input id="title" placeholder="Title">
+<input id="channel" placeholder="Channel">
+<input id="url" placeholder="Video URL">
+<input id="thumb" placeholder="Thumbnail (optional)">
+<select id="category">
+<option>Movie</option>
+<option>Funny</option>
+<option>Music</option>
+</select>
+<button onclick="addVideo()">Save</button>
+</div>
+
+<div class="card">
+<h2>All Videos</h2>
+<div id="list"></div>
+</div>
+
+<button onclick="logout()">Logout</button>
+
 </div>
 
 <script>
-    // আপডেট করা সঠিক URL এবং Anon Key
-    const S_URL = "https://psvpzoblbyfrofzaltbw.supabase.com"; 
-    const S_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ";
-    
-    const supabaseClient = supabase.createClient(S_URL, S_KEY);
+const supabase = window.supabase.createClient(
+ "https://psvpzoblbyfrofzaltbw.supabase.com",
+ "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzdnB6b2JsYnlmcm9memFsdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MTM3NDIsImV4cCI6MjA5MDA4OTc0Mn0.rmidmNF4s1F_Fjk10AJWeig5oM-sqABnZNoWwn09jmQ"
+);
 
-    window.saveVideo = async function() {
-        let url = document.getElementById('v-url').value.trim();
-        const title = document.getElementById('v-title').value.trim();
-        const channel = document.getElementById('v-channel').value.trim();
-        let thumb = document.getElementById('v-thumb').value.trim() || "https://via.placeholder.com/320x180?text=MiniTube";
-        const category = document.getElementById('v-cat').value;
+async function login() {
+ const email = document.getElementById("emailInput").value;
+ const password = document.getElementById("passwordInput").value;
 
-        if (!title || !url) return alert("টাইটেল এবং লিঙ্ক দিন!");
+ const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-        // ড্রপবক্স লিঙ্ক অটো-ফিক্স
-        if (url.includes("dropbox.com")) {
-            url = url.split('?')[0] + "?raw=1";
-        }
+ if (error) return alert("Login failed!");
 
-        const btn = document.getElementById('save-btn');
-        btn.disabled = true;
-        btn.innerText = "সেভ হচ্ছে...";
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("dashboard").classList.remove("hidden");
+ loadVideos();
+}
 
-        try {
-            const { error } = await supabaseClient
-                .from('videos')
-                .insert([{
-                    title: title,
-                    channel: channel,
-                    url: url,
-                    category: category,
-                    thumbnail: thumb
-                }]);
+async function logout() {
+ await supabase.auth.signOut();
+ location.reload();
+}
 
-            if (error) {
-                alert("ডাটাবেস এরর: " + error.message);
-                console.error(error);
-            } else {
-                alert("অভিনন্দন! ভিডিওটি সফলভাবে সেভ হয়েছে।");
-                location.reload(); 
-            }
-        } catch (networkError) {
-            alert("নেটওয়ার্ক এরর (Failed to fetch):\n১. আপনার ইন্টারনেটের সমস্যা বা ডোমেইন ব্লক।\n২. VPN চালু করে একবার ট্রাই করুন।");
-            console.error(networkError);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "সেভ করুন";
-        }
-    }
+async function addVideo() {
+ let url = document.getElementById("url").value.trim();
+ let thumb = document.getElementById("thumb").value.trim();
+
+ if (!url) return alert("URL লাগবে!");
+
+ if (url.includes("dropbox.com")) {
+   url = url.split('?')[0] + "?raw=1";
+ }
+
+ if (!thumb) {
+   thumb = "https://via.placeholder.com/320x180?text=MiniTube";
+ }
+
+ const { error } = await supabase.from("videos").insert([{
+   title: document.getElementById("title").value,
+   channel: document.getElementById("channel").value,
+   url: url,
+   thumbnail: thumb,
+   category: document.getElementById("category").value
+ }]);
+
+ if (error) return alert("Save failed!");
+
+ alert("Saved!");
+ loadVideos();
+}
+
+async function loadVideos() {
+ const { data } = await supabase
+   .from("videos")
+   .select("*")
+   .order("id", { ascending:false });
+
+ const list = document.getElementById("list");
+ list.innerHTML = "";
+
+ data.forEach(v => {
+   const div = document.createElement("div");
+   div.className = "video";
+
+   div.innerHTML = `
+     <b>${v.title}</b><br>
+     ${v.channel || ""}<br>
+     <button class="delete" onclick="deleteVideo('${v.id}')">Delete</button>
+   `;
+
+   list.appendChild(div);
+ });
+}
+
+async function deleteVideo(id) {
+ if (!confirm("Delete করতে চান?")) return;
+
+ await supabase.from("videos").delete().eq("id", id);
+ loadVideos();
+}
+
+supabase.auth.getSession().then(({ data }) => {
+ if (data.session) {
+   document.getElementById("login").classList.add("hidden");
+   document.getElementById("dashboard").classList.remove("hidden");
+   loadVideos();
+ }
+});
 </script>
+
 </body>
 </html>
