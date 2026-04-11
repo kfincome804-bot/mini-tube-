@@ -2,231 +2,90 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <title>MiniTube Admin - Control Panel</title>
+    <title>MiniTube Admin</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
-        .box { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; }
+        .box { max-width: 500px; margin: auto; background: #fff; padding: 25px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-top: 0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 16px; }
         .btn-save { background: #007bff; color: #fff; }
         .btn-add { background: #28a745; color: #fff; }
+        button:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
 
     <div class="box">
-        <h2>⚙️ App Settings</h2>
-        <input id="set-ad" placeholder="Ad Link (বিজ্ঞাপন লিঙ্ক)">
-        <input id="set-cost" type="number" placeholder="Play Cost (ভিডিও দেখতে কত পয়েন্ট লাগবে)">
-        <button class="btn-save" onclick="updateSettings()">Save Settings</button>
+        <h2>⚙️ অ্যাপ সেটিংস</h2>
+        <input id="set-ad" placeholder="বিজ্ঞাপনের লিঙ্ক (Ad Link)">
+        <input id="set-cost" type="number" placeholder="ভিডিও দেখতে কত পয়েন্ট কাটবে?">
+        <button class="btn-save" onclick="updateSettings()">সেটিংস সেভ করুন</button>
     </div>
 
     <div class="box">
-        <h2>🎬 Add New Video</h2>
-        <input id="v-title" placeholder="Video Title">
-        <input id="v-url" placeholder="Direct Video URL">
-        <input id="v-thumb" placeholder="Thumbnail Image URL">
-        <button class="btn-add" onclick="addVideo()">Add Video</button>
+        <h2>🎬 ভিডিও যোগ করুন</h2>
+        <input id="v-title" placeholder="ভিডিওর নাম (Title)">
+        <input id="v-url" placeholder="ভিডিও লিঙ্ক (Direct/Dropbox URL)">
+        <input id="v-thumb" placeholder="থাম্বনেইল ইমেজ লিঙ্ক">
+        <button class="btn-add" onclick="addVideo()">ভিডিও যুক্ত করুন</button>
     </div>
 
 <script>
+    // Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyC1V3fowb7Tt1PEIqQYNQQQWGsuAwiJqk8",
-        authDomain: "mini-tube-6bf85.firebaseapp.com",
         projectId: "mini-tube-6bf85",
-        storageBucket: "mini-tube-6bf85.firebasestorage.app",
-        messagingSenderId: "415016883999",
         appId: "1:415016883999:web:9b9d0af2e3244af794022a"
     };
-
+    
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Settings Update Function
     async function updateSettings() {
         const ad = document.getElementById('set-ad').value;
         const cost = Number(document.getElementById('set-cost').value);
-        if(!ad || !cost) return alert("সব ঘর পূরণ করুন!");
+        if(!ad || !cost) return alert("দয়া করে বিজ্ঞাপনের লিঙ্ক এবং পয়েন্ট দিন!");
         
-        await db.collection('settings').doc('app_settings').set({ ad_link: ad, min_points: cost });
-        alert("Settings Saved successfully!");
+        await db.collection('settings').doc('app_settings').set({ 
+            ad_link: ad, 
+            min_points: cost 
+        }, { merge: true });
+        
+        alert("সেটিংস সফলভাবে সেভ হয়েছে!");
     }
 
+    // Add Video Function
     async function addVideo() {
         const title = document.getElementById('v-title').value;
         let url = document.getElementById('v-url').value;
         const thumb = document.getElementById('v-thumb').value;
         
-        if(!title || !url || !thumb) return alert("সব ঘর পূরণ করুন!");
-        if(url.includes("dropbox.com")) url = url.split('?')[0] + "?raw=1";
-
-        await db.collection('videos').add({ title, url, thumbnail: thumb, createdAt: new Date() });
-        alert("Video added to database!");
+        if(!title || !url || !thumb) return alert("দয়া করে টাইটেল, ভিডিও লিঙ্ক এবং থাম্বনেইল দিন!");
         
-        // Clear inputs
-        document.getElementById('v-title').value = '';
-        document.getElementById('v-url').value = '';
-        document.getElementById('v-thumb').value = '';
-    }
-</script>
-</body>
-</html>            document.getElementById('v-thumb').value = "";
-            loadData();
-        }
-    }
-
-    async function loadData() {
-        const { data: settings } = await supabaseAdmin.from('settings').select('*').eq('id', 1).single();
-        if (settings) {
-            document.getElementById('set-ad-link').value = settings.ad_link;
-            document.getElementById('set-cost').value = settings.min_points_to_play;
+        // Dropbox link auto-converter for direct streaming
+        if(url.includes("dropbox.com")) {
+            url = url.split('?')[0] + "?raw=1";
         }
 
-        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
-        const list = document.getElementById('v-list');
-        list.innerHTML = '';
-        
-        if (videos && videos.length > 0) {
-            videos.forEach(v => {
-                list.innerHTML += `
-                    <div class="video-item">
-                        <div class="v-row">
-                            <img src="${v.thumbnail}" class="v-thumb-preview">
-                            <div class="video-info">
-                                <strong>${v.title}</strong>
-                                <small style="color:#888">${v.category}</small>
-                            </div>
-                        </div>
-                        <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
-                    </div>`;
-            });
-        } else {
-            list.innerHTML = 'কোনো ভিডিও নেই।';
-        }
-    }
-
-    async function deleteVideo(id) {
-        if(!confirm("মুছে ফেলবেন?")) return;
-        await supabaseAdmin.from('videos').delete().eq('id', id);
-        loadData();
-    }
-
-    window.onload = loadData;
-</script>
-</body>
-</html>        // ১. সেটিংস লোড
-        const { data: settings } = await supabaseAdmin.from('settings').select('*').eq('id', 1).single();
-        if (settings) {
-            document.getElementById('set-ad-link').value = settings.ad_link;
-            document.getElementById('set-cost').value = settings.min_points_to_play;
-        }
-
-        // ২. ভিডিও লিস্ট লোড
-        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
-        const list = document.getElementById('v-list');
-        list.innerHTML = '';
-        
-        if (videos && videos.length > 0) {
-            videos.forEach(v => {
-                list.innerHTML += `
-                    <div class="video-item">
-                        <div class="video-info">
-                            <strong>${v.title}</strong>
-                            <small style="color:#888">${v.category}</small>
-                        </div>
-                        <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
-                    </div>`;
-            });
-        } else {
-            list.innerHTML = 'কোনো ভিডিও পাওয়া যায়নি।';
-        }
-    }
-
-    // ভিডিও ডিলিট করা
-    async function deleteVideo(id) {
-        if(!confirm("আপনি কি নিশ্চিত যে এই ভিডিওটি মুছে ফেলবেন?")) return;
-        const { error } = await supabaseAdmin.from('videos').delete().eq('id', id);
-        if (error) alert("ডিলিট করা যায়নি!");
-        else loadData();
-    }
-
-    // পেজ লোড হলে ডাটা দেখাও
-    window.onload = loadData;
-
-</script>
-</body>
-</html>
-        // ভিডিও লোড
-        const { data: videos } = await supabaseAdmin.from('videos').select('*').order('id', {ascending:false});
-        const list = document.getElementById('v-list');
-        list.innerHTML = '';
-        videos.forEach(v => {
-            list.innerHTML += `<div class="video-item">
-                <span>${v.title}</span>
-                <button class="btn-del" onclick="deleteVideo('${v.id}')">Delete</button>
-            </div>`;
+        await db.collection('videos').add({ 
+            title: title, 
+            url: url, 
+            thumbnail: thumb, 
+            channel: "MiniTube" 
         });
+        
+        alert("ভিডিও সফলভাবে যোগ করা হয়েছে!");
+        
+        // Clear inputs after adding
+        document.getElementById('v-title').value = "";
+        document.getElementById('v-url').value = "";
+        document.getElementById('v-thumb').value = "";
     }
-
-    async function deleteVideo(id) {
-        if(!confirm("মুছে ফেলবেন?")) return;
-        await supabaseAdmin.from('videos').delete().eq('id', id);
-        loadData();
-    }
-
-    async function logout() { await supabaseAdmin.auth.signOut(); location.reload(); }
-
-    supabaseAdmin.auth.getSession().then(({ data }) => {
-        if (data.session) {
-            document.getElementById('login-box').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            loadData();
-        }
-    });
 </script>
-</body>
-</html>}
-
-async function loadVideos() {
- const { data } = await supabase
-   .from("videos")
-   .select("*")
-   .order("id", { ascending:false });
-
- const list = document.getElementById("list");
- list.innerHTML = "";
-
- data.forEach(v => {
-   const div = document.createElement("div");
-   div.className = "video";
-
-   div.innerHTML = `
-     <b>${v.title}</b><br>
-     ${v.channel || ""}<br>
-     <button class="delete" onclick="deleteVideo('${v.id}')">Delete</button>
-   `;
-
-   list.appendChild(div);
- });
-}
-
-async function deleteVideo(id) {
- if (!confirm("Delete করতে চান?")) return;
-
- await supabase.from("videos").delete().eq("id", id);
- loadVideos();
-}
-
-supabase.auth.getSession().then(({ data }) => {
- if (data.session) {
-   document.getElementById("login").classList.add("hidden");
-   document.getElementById("dashboard").classList.remove("hidden");
-   loadVideos();
- }
-});
-</script>
-
 </body>
 </html>
